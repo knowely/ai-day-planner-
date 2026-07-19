@@ -31,7 +31,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TasksProvider>
-          <div className="flex-1 pb-20">{children}</div>
+          <div className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))]">{children}</div>
           <BottomNav />
         </TasksProvider>
       </body>
