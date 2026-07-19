@@ -83,6 +83,7 @@ describe("useSpeechRecognition", () => {
     window.SpeechRecognition = class extends OriginalCtor {
       constructor() {
         super();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         instance = this;
       }
     };
@@ -118,6 +119,7 @@ describe("useSpeechRecognition", () => {
     window.SpeechRecognition = class extends OriginalCtor {
       constructor() {
         super();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         instance = this;
       }
     };
