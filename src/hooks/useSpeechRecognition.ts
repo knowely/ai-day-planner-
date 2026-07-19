@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SpeechRecognitionResultEvent {
   results: ArrayLike<ArrayLike<{ transcript: string }>>;
@@ -37,6 +37,8 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const start = useCallback(() => {
+    if (isListening) return;
+
     const Ctor = getSpeechRecognitionConstructor();
     if (!Ctor) return;
 
@@ -55,11 +57,17 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
     recognitionRef.current = recognition;
     setIsListening(true);
     recognition.start();
-  }, [onResult]);
+  }, [onResult, isListening]);
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();
     setIsListening(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
   }, []);
 
   return {

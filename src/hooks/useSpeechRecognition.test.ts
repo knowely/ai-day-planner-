@@ -134,4 +134,55 @@ describe("useSpeechRecognition", () => {
     expect(instance.stop).toHaveBeenCalledTimes(1);
     expect(result.current.isListening).toBe(false);
   });
+
+  it("does not start a second recognition instance while already listening", () => {
+    const { result } = renderHook(() => useSpeechRecognition(() => {}));
+
+    let instance!: FakeSpeechRecognition;
+    let constructCount = 0;
+    const OriginalCtor = window.SpeechRecognition as unknown as typeof FakeSpeechRecognition;
+    // @ts-expect-error wrapping the test double to capture the created instance
+    window.SpeechRecognition = class extends OriginalCtor {
+      constructor() {
+        super();
+        constructCount += 1;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        instance = this;
+      }
+    };
+
+    act(() => {
+      result.current.start();
+    });
+    act(() => {
+      result.current.start();
+    });
+
+    expect(constructCount).toBe(1);
+    expect(instance.start).toHaveBeenCalledTimes(1);
+    expect(result.current.isListening).toBe(true);
+  });
+
+  it("stops the underlying recognition when unmounted while listening", () => {
+    const { result, unmount } = renderHook(() => useSpeechRecognition(() => {}));
+
+    let instance!: FakeSpeechRecognition;
+    const OriginalCtor = window.SpeechRecognition as unknown as typeof FakeSpeechRecognition;
+    // @ts-expect-error wrapping the test double to capture the created instance
+    window.SpeechRecognition = class extends OriginalCtor {
+      constructor() {
+        super();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        instance = this;
+      }
+    };
+
+    act(() => {
+      result.current.start();
+    });
+
+    unmount();
+
+    expect(instance.stop).toHaveBeenCalledTimes(1);
+  });
 });
