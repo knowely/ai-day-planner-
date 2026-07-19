@@ -37,7 +37,7 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const start = useCallback(() => {
-    if (isListening) return;
+    if (recognitionRef.current) return;
 
     const Ctor = getSpeechRecognitionConstructor();
     if (!Ctor) return;
@@ -51,16 +51,23 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
       const transcript = event.results[0]?.[0]?.transcript ?? "";
       if (transcript) onResult(transcript);
     };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => {
+      recognitionRef.current = null;
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setIsListening(false);
+    };
 
     recognitionRef.current = recognition;
     setIsListening(true);
     recognition.start();
-  }, [onResult, isListening]);
+  }, [onResult]);
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();
+    recognitionRef.current = null;
     setIsListening(false);
   }, []);
 

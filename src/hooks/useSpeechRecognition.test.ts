@@ -163,6 +163,35 @@ describe("useSpeechRecognition", () => {
     expect(result.current.isListening).toBe(true);
   });
 
+  it("does not start a second recognition instance for two start() calls in the same tick", () => {
+    const { result } = renderHook(() => useSpeechRecognition(() => {}));
+
+    let constructCount = 0;
+    const instances: FakeSpeechRecognition[] = [];
+    const OriginalCtor = window.SpeechRecognition as unknown as typeof FakeSpeechRecognition;
+    // @ts-expect-error wrapping the test double to capture the created instance
+    window.SpeechRecognition = class extends OriginalCtor {
+      constructor() {
+        super();
+        constructCount += 1;
+        instances.push(this);
+      }
+    };
+
+    act(() => {
+      result.current.start();
+      result.current.start();
+    });
+
+    expect(constructCount).toBe(1);
+    const totalStartCalls = instances.reduce(
+      (sum, instance) => sum + instance.start.mock.calls.length,
+      0,
+    );
+    expect(totalStartCalls).toBe(1);
+    expect(result.current.isListening).toBe(true);
+  });
+
   it("stops the underlying recognition when unmounted while listening", () => {
     const { result, unmount } = renderHook(() => useSpeechRecognition(() => {}));
 
