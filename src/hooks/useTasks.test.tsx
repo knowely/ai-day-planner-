@@ -119,7 +119,8 @@ describe("useTasks", () => {
   });
 
   it("throws when useTasks is called outside a TasksProvider", () => {
-    const { result } = renderHook(() => useTasks());
-    expect(result.error).toBeInstanceOf(Error);
+    expect(() => renderHook(() => useTasks())).toThrow(
+      "useTasks must be used within a TasksProvider"
+    );
   });
 });
