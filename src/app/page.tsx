@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import type { ParsedTask } from "@/lib/tasks";
+
+const PARSE_TIMEOUT_MS = 15000;
 
 export default function CapturePage() {
-  const { addTasksFromText } = useTasks();
+  const { addTasksFromText, addParsedTasks } = useTasks();
   const [text, setText] = useState("");
   const [micMessage, setMicMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { isSupported, isListening, start, stop } = useSpeechRecognition(
     (transcript) => {
@@ -15,9 +19,44 @@ export default function CapturePage() {
     }
   );
 
-  function handleAdd() {
-    addTasksFromText(text);
-    setText("");
+  async function handleAdd() {
+    const currentText = text;
+    if (currentText.trim().length === 0) return;
+
+    setIsSubmitting(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PARSE_TIMEOUT_MS);
+
+    try {
+      const response = await fetch("/api/parse-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: currentText }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) throw new Error("parse-tasks request failed");
+
+      const data: unknown = await response.json();
+      const tasks =
+        data &&
+        typeof data === "object" &&
+        Array.isArray((data as { tasks?: unknown }).tasks)
+          ? ((data as { tasks: ParsedTask[] }).tasks)
+          : null;
+
+      if (tasks === null || tasks.length === 0) {
+        throw new Error("parse-tasks returned an invalid or empty payload");
+      }
+
+      addParsedTasks(tasks);
+    } catch {
+      addTasksFromText(currentText);
+    } finally {
+      clearTimeout(timeoutId);
+      setIsSubmitting(false);
+      setText("");
+    }
   }
 
   function handleMicClick() {
@@ -67,10 +106,10 @@ export default function CapturePage() {
         <button
           type="button"
           onClick={handleAdd}
-          disabled={text.trim().length === 0}
+          disabled={text.trim().length === 0 || isSubmitting}
           className="h-16 flex-1 rounded-full bg-black text-lg font-medium text-white disabled:opacity-30 dark:bg-white dark:text-black"
         >
-          Додати
+          {isSubmitting ? "Розбираю…" : "Додати"}
         </button>
       </div>
     </div>

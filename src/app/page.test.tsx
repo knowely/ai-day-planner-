@@ -1,15 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CapturePage from "./page";
 
-const { addTasksFromText, useSpeechRecognitionMock } = vi.hoisted(() => ({
-  addTasksFromText: vi.fn(),
-  useSpeechRecognitionMock: vi.fn(),
-}));
+const { addTasksFromText, addParsedTasks, useSpeechRecognitionMock } = vi.hoisted(
+  () => ({
+    addTasksFromText: vi.fn(),
+    addParsedTasks: vi.fn(),
+    useSpeechRecognitionMock: vi.fn(),
+  })
+);
 
 vi.mock("@/hooks/useTasks", () => ({
-  useTasks: () => ({ addTasksFromText }),
+  useTasks: () => ({ addTasksFromText, addParsedTasks }),
 }));
 
 vi.mock("@/hooks/useSpeechRecognition", () => ({
@@ -20,16 +23,37 @@ vi.mock("@/hooks/useSpeechRecognition", () => ({
 describe("CapturePage", () => {
   beforeEach(() => {
     addTasksFromText.mockClear();
+    addParsedTasks.mockClear();
     useSpeechRecognitionMock.mockReset();
-  });
-
-  it("adds the typed text and clears the field", async () => {
     useSpeechRecognitionMock.mockReturnValue({
       isSupported: true,
       isListening: false,
       start: vi.fn(),
       stop: vi.fn(),
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("adds AI-parsed tasks and clears the field on a successful parse", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          tasks: [
+            {
+              text: "Купити молоко",
+              priority: "medium",
+              estimatedMinutes: null,
+              deadline: null,
+            },
+          ],
+        }),
+      })
+    );
     const user = userEvent.setup();
     render(<CapturePage />);
 
@@ -37,19 +61,116 @@ describe("CapturePage", () => {
     await user.type(textarea, "купити молоко");
     await user.click(screen.getByRole("button", { name: "Додати" }));
 
-    expect(addTasksFromText).toHaveBeenCalledWith("купити молоко");
+    await waitFor(() =>
+      expect(addParsedTasks).toHaveBeenCalledWith([
+        {
+          text: "Купити молоко",
+          priority: "medium",
+          estimatedMinutes: null,
+          deadline: null,
+        },
+      ])
+    );
+    expect(addTasksFromText).not.toHaveBeenCalled();
     expect(textarea).toHaveValue("");
   });
 
-  it("disables Додати while the field is empty", () => {
-    useSpeechRecognitionMock.mockReturnValue({
-      isSupported: true,
-      isListening: false,
-      start: vi.fn(),
-      stop: vi.fn(),
-    });
+  it("falls back to line-splitting when the parse request fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+    const user = userEvent.setup();
     render(<CapturePage />);
 
+    const textarea = screen.getByLabelText("Що в голові?");
+    await user.type(textarea, "купити молоко");
+    await user.click(screen.getByRole("button", { name: "Додати" }));
+
+    await waitFor(() =>
+      expect(addTasksFromText).toHaveBeenCalledWith("купити молоко")
+    );
+    expect(addParsedTasks).not.toHaveBeenCalled();
+    expect(textarea).toHaveValue("");
+  });
+
+  it("falls back to line-splitting when the server responds with an error status", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "boom" }) })
+    );
+    const user = userEvent.setup();
+    render(<CapturePage />);
+
+    const textarea = screen.getByLabelText("Що в голові?");
+    await user.type(textarea, "купити молоко");
+    await user.click(screen.getByRole("button", { name: "Додати" }));
+
+    await waitFor(() =>
+      expect(addTasksFromText).toHaveBeenCalledWith("купити молоко")
+    );
+  });
+
+  it("falls back to line-splitting when the response payload has no tasks array", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ oops: true }) })
+    );
+    const user = userEvent.setup();
+    render(<CapturePage />);
+
+    const textarea = screen.getByLabelText("Що в голові?");
+    await user.type(textarea, "купити молоко");
+    await user.click(screen.getByRole("button", { name: "Додати" }));
+
+    await waitFor(() =>
+      expect(addTasksFromText).toHaveBeenCalledWith("купити молоко")
+    );
+  });
+
+  it("falls back to line-splitting when the AI returns an empty tasks array", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ tasks: [] }) })
+    );
+    const user = userEvent.setup();
+    render(<CapturePage />);
+
+    const textarea = screen.getByLabelText("Що в голові?");
+    await user.type(textarea, "купити молоко");
+    await user.click(screen.getByRole("button", { name: "Додати" }));
+
+    await waitFor(() =>
+      expect(addTasksFromText).toHaveBeenCalledWith("купити молоко")
+    );
+    expect(addParsedTasks).not.toHaveBeenCalled();
+  });
+
+  it("disables Додати and shows a loading label while the request is in flight", async () => {
+    let resolveFetch: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveFetch = resolve;
+          })
+      )
+    );
+    const user = userEvent.setup();
+    render(<CapturePage />);
+
+    const textarea = screen.getByLabelText("Що в голові?");
+    await user.type(textarea, "купити молоко");
+    await user.click(screen.getByRole("button", { name: "Додати" }));
+
+    expect(screen.getByRole("button", { name: "Розбираю…" })).toBeDisabled();
+
+    resolveFetch({ ok: true, json: async () => ({ tasks: [] }) });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Додати" })).toBeInTheDocument()
+    );
+  });
+
+  it("disables Додати while the field is empty", () => {
+    render(<CapturePage />);
     expect(screen.getByRole("button", { name: "Додати" })).toBeDisabled();
   });
 
