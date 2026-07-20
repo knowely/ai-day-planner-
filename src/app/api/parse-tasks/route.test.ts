@@ -136,4 +136,23 @@ describe("POST /api/parse-tasks", () => {
     const response = await POST(makeRequest({ text: "купити молоко" }));
     expect(response.status).toBe(502);
   });
+
+  it("returns 400 when the request body is not valid JSON", async () => {
+    const request = new Request("http://localhost/api/parse-tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 502 when the upstream response body is not valid JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("{not json", { status: 200 }))
+    );
+    const response = await POST(makeRequest({ text: "купити молоко" }));
+    expect(response.status).toBe(502);
+  });
 });

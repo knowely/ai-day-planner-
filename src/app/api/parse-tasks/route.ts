@@ -95,6 +95,7 @@ export async function POST(request: Request): Promise<Response> {
         tools: [EXTRACT_TASKS_TOOL],
         tool_choice: { type: "function", function: { name: "extract_tasks" } },
       }),
+      signal: AbortSignal.timeout(12000),
     });
   } catch {
     return Response.json({ error: "Upstream request failed" }, { status: 502 });
