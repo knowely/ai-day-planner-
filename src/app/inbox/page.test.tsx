@@ -24,6 +24,9 @@ const inboxTask: Task = {
   status: "inbox",
   done: false,
   createdAt: 1,
+  priority: "high",
+  estimatedMinutes: 15,
+  deadline: "2026-07-25",
 };
 const todayTask: Task = {
   id: "2",
@@ -31,6 +34,9 @@ const todayTask: Task = {
   status: "today",
   done: false,
   createdAt: 2,
+  priority: "medium",
+  estimatedMinutes: null,
+  deadline: null,
 };
 
 describe("InboxPage", () => {

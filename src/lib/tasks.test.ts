@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createTask, loadTasks, parseCaptureText, saveTasks } from "./tasks";
+import {
+  createTask,
+  createTaskFromParsed,
+  formatTaskMeta,
+  loadTasks,
+  parseCaptureText,
+  saveTasks,
+} from "./tasks";
 
 describe("parseCaptureText", () => {
   it("splits multi-line text into trimmed non-empty lines", () => {
@@ -14,7 +21,7 @@ describe("parseCaptureText", () => {
 });
 
 describe("createTask", () => {
-  it("creates an inbox task with the given text", () => {
+  it("creates an inbox task with the given text and default metadata", () => {
     const task = createTask("купити молоко");
     expect(task.text).toBe("купити молоко");
     expect(task.status).toBe("inbox");
@@ -22,12 +29,60 @@ describe("createTask", () => {
     expect(typeof task.id).toBe("string");
     expect(task.id.length).toBeGreaterThan(0);
     expect(typeof task.createdAt).toBe("number");
+    expect(task.priority).toBe("medium");
+    expect(task.estimatedMinutes).toBeNull();
+    expect(task.deadline).toBeNull();
   });
 
   it("gives distinct ids to two tasks", () => {
     const a = createTask("a");
     const b = createTask("b");
     expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe("createTaskFromParsed", () => {
+  it("creates an inbox task carrying the parsed metadata", () => {
+    const task = createTaskFromParsed({
+      text: "Купити молоко",
+      priority: "high",
+      estimatedMinutes: 15,
+      deadline: "2026-07-25",
+    });
+    expect(task.text).toBe("Купити молоко");
+    expect(task.status).toBe("inbox");
+    expect(task.done).toBe(false);
+    expect(task.priority).toBe("high");
+    expect(task.estimatedMinutes).toBe(15);
+    expect(task.deadline).toBe("2026-07-25");
+    expect(typeof task.id).toBe("string");
+    expect(typeof task.createdAt).toBe("number");
+  });
+});
+
+describe("formatTaskMeta", () => {
+  it("shows only the priority dot when no other metadata is present", () => {
+    expect(
+      formatTaskMeta({ priority: "medium", estimatedMinutes: null, deadline: null })
+    ).toBe("🟡");
+  });
+
+  it("adds estimated minutes when present", () => {
+    expect(
+      formatTaskMeta({ priority: "high", estimatedMinutes: 15, deadline: null })
+    ).toBe("🔴 · ~15 хв");
+  });
+
+  it("adds a formatted deadline when present", () => {
+    expect(
+      formatTaskMeta({ priority: "low", estimatedMinutes: null, deadline: "2026-07-25" })
+    ).toBe("🟢 · 25.07");
+  });
+
+  it("combines minutes and deadline", () => {
+    expect(
+      formatTaskMeta({ priority: "high", estimatedMinutes: 30, deadline: "2026-12-01" })
+    ).toBe("🔴 · ~30 хв · 01.12");
   });
 });
 

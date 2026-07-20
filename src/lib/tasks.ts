@@ -1,4 +1,5 @@
 export type TaskStatus = "inbox" | "today";
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface Task {
   id: string;
@@ -6,9 +7,25 @@ export interface Task {
   status: TaskStatus;
   done: boolean;
   createdAt: number;
+  priority: TaskPriority;
+  estimatedMinutes: number | null;
+  deadline: string | null;
+}
+
+export interface ParsedTask {
+  text: string;
+  priority: TaskPriority;
+  estimatedMinutes: number | null;
+  deadline: string | null;
 }
 
 const STORAGE_KEY = "ai-day-planner:tasks";
+
+const PRIORITY_ICON: Record<TaskPriority, string> = {
+  high: "🔴",
+  medium: "🟡",
+  low: "🟢",
+};
 
 export function parseCaptureText(text: string): string[] {
   return text
@@ -24,7 +41,37 @@ export function createTask(text: string): Task {
     status: "inbox",
     done: false,
     createdAt: Date.now(),
+    priority: "medium",
+    estimatedMinutes: null,
+    deadline: null,
   };
+}
+
+export function createTaskFromParsed(parsed: ParsedTask): Task {
+  return {
+    id: crypto.randomUUID(),
+    text: parsed.text,
+    status: "inbox",
+    done: false,
+    createdAt: Date.now(),
+    priority: parsed.priority,
+    estimatedMinutes: parsed.estimatedMinutes,
+    deadline: parsed.deadline,
+  };
+}
+
+export function formatTaskMeta(
+  task: Pick<Task, "priority" | "estimatedMinutes" | "deadline">
+): string {
+  const parts = [PRIORITY_ICON[task.priority]];
+  if (task.estimatedMinutes !== null) {
+    parts.push(`~${task.estimatedMinutes} хв`);
+  }
+  if (task.deadline !== null) {
+    const [, month, day] = task.deadline.split("-");
+    parts.push(`${day}.${month}`);
+  }
+  return parts.join(" · ");
 }
 
 export function loadTasks(): Task[] {
