@@ -13,11 +13,17 @@ export default function CapturePage() {
   const [micMessage, setMicMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { isSupported, isListening, start, stop } = useSpeechRecognition(
+  const { isSupported, isListening, error, start, stop } = useSpeechRecognition(
     (transcript) => {
       setText((prev) => (prev ? `${prev}\n${transcript}` : transcript));
     }
   );
+
+  const displayMessage =
+    micMessage ??
+    (error
+      ? `Помилка розпізнавання (${error}). Спробуй ще раз або введи текст вручну.`
+      : null);
 
   async function handleAdd() {
     const currentText = text;
@@ -84,9 +90,9 @@ export default function CapturePage() {
         aria-label="Що в голові?"
         className="flex-1 w-full resize-none rounded-2xl border border-black/10 bg-white p-4 text-lg leading-relaxed outline-none focus:border-black/30 dark:border-white/10 dark:bg-black dark:focus:border-white/30"
       />
-      {micMessage && (
+      {displayMessage && (
         <p role="status" className="text-sm text-zinc-500 dark:text-zinc-400">
-          {micMessage}
+          {displayMessage}
         </p>
       )}
       <div className="flex items-center gap-4">

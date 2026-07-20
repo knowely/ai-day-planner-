@@ -192,6 +192,66 @@ describe("useSpeechRecognition", () => {
     expect(result.current.isListening).toBe(true);
   });
 
+  it("starts with a null error", () => {
+    const { result } = renderHook(() => useSpeechRecognition(() => {}));
+    expect(result.current.error).toBeNull();
+  });
+
+  it("captures the error code when recognition fails", () => {
+    const { result } = renderHook(() => useSpeechRecognition(() => {}));
+
+    let instance!: FakeSpeechRecognition;
+    const OriginalCtor = window.SpeechRecognition as unknown as typeof FakeSpeechRecognition;
+    // @ts-expect-error wrapping the test double to capture the created instance
+    window.SpeechRecognition = class extends OriginalCtor {
+      constructor() {
+        super();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        instance = this;
+      }
+    };
+
+    act(() => {
+      result.current.start();
+    });
+
+    act(() => {
+      instance.onerror?.({ error: "network" });
+    });
+
+    expect(result.current.error).toBe("network");
+    expect(result.current.isListening).toBe(false);
+  });
+
+  it("clears a previous error when starting again", () => {
+    const { result } = renderHook(() => useSpeechRecognition(() => {}));
+
+    let instance!: FakeSpeechRecognition;
+    const OriginalCtor = window.SpeechRecognition as unknown as typeof FakeSpeechRecognition;
+    // @ts-expect-error wrapping the test double to capture the created instance
+    window.SpeechRecognition = class extends OriginalCtor {
+      constructor() {
+        super();
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        instance = this;
+      }
+    };
+
+    act(() => {
+      result.current.start();
+    });
+    act(() => {
+      instance.onerror?.({ error: "no-speech" });
+    });
+    expect(result.current.error).toBe("no-speech");
+
+    act(() => {
+      result.current.start();
+    });
+
+    expect(result.current.error).toBeNull();
+  });
+
   it("stops the underlying recognition when unmounted while listening", () => {
     const { result, unmount } = renderHook(() => useSpeechRecognition(() => {}));
 

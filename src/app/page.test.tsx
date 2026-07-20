@@ -28,6 +28,7 @@ describe("CapturePage", () => {
     useSpeechRecognitionMock.mockReturnValue({
       isSupported: true,
       isListening: false,
+      error: null,
       start: vi.fn(),
       stop: vi.fn(),
     });
@@ -207,5 +208,22 @@ describe("CapturePage", () => {
     await user.click(screen.getByRole("button", { name: "Диктувати" }));
 
     expect(start).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the recognition error code when speech recognition fails", () => {
+    useSpeechRecognitionMock.mockReturnValue({
+      isSupported: true,
+      isListening: false,
+      error: "network",
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+    render(<CapturePage />);
+
+    expect(
+      screen.getByText(
+        "Помилка розпізнавання (network). Спробуй ще раз або введи текст вручну."
+      )
+    ).toBeInTheDocument();
   });
 });

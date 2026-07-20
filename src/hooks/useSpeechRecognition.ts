@@ -6,6 +6,10 @@ interface SpeechRecognitionResultEvent {
   results: ArrayLike<ArrayLike<{ transcript: string }>>;
 }
 
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
 interface SpeechRecognitionLike {
   lang: string;
   continuous: boolean;
@@ -13,7 +17,7 @@ interface SpeechRecognitionLike {
   start: () => void;
   stop: () => void;
   onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
-  onerror: ((event: unknown) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: ((event: unknown) => void) | null;
 }
 
@@ -34,6 +38,7 @@ export function isSpeechRecognitionSupported(): boolean {
 
 export function useSpeechRecognition(onResult: (text: string) => void) {
   const [isListening, setIsListening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const start = useCallback(() => {
@@ -41,6 +46,8 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
 
     const Ctor = getSpeechRecognitionConstructor();
     if (!Ctor) return;
+
+    setError(null);
 
     const recognition = new Ctor();
     recognition.lang = "uk-UA";
@@ -51,9 +58,10 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
       const transcript = event.results[0]?.[0]?.transcript ?? "";
       if (transcript) onResult(transcript);
     };
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
       recognitionRef.current = null;
       setIsListening(false);
+      setError(event.error);
     };
     recognition.onend = () => {
       recognitionRef.current = null;
@@ -80,6 +88,7 @@ export function useSpeechRecognition(onResult: (text: string) => void) {
   return {
     isSupported: isSpeechRecognitionSupported(),
     isListening,
+    error,
     start,
     stop,
   };
