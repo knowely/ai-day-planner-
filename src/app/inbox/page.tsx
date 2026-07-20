@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { formatTaskMeta } from "@/lib/tasks";
 import { useTasks } from "@/hooks/useTasks";
 
@@ -11,9 +12,21 @@ export default function InboxPage() {
     <div className="flex flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">Inbox</h1>
       {inboxTasks.length === 0 ? (
-        <p className="text-zinc-500 dark:text-zinc-400">
-          Тут з&apos;являться твої задачі
-        </p>
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <span className="text-4xl" aria-hidden="true">
+            📥
+          </span>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            Inbox поки порожній. Тут з&apos;являться задачі, щойно ти щось
+            надиктуєш.
+          </p>
+          <Link
+            href="/"
+            className="flex h-12 items-center justify-center rounded-full bg-black px-6 text-sm font-medium text-white dark:bg-white dark:text-black"
+          >
+            ← У Capture
+          </Link>
+        </div>
       ) : (
         <ul className="flex flex-col gap-3">
           {inboxTasks.map((task) => (

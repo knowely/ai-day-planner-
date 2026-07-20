@@ -45,10 +45,18 @@ describe("InboxPage", () => {
     removeTask.mockClear();
   });
 
-  it("shows a placeholder when there are no inbox tasks", () => {
+  it("shows the empty-state message and a link back to Capture when there are no inbox tasks", () => {
     tasksMock.mockReturnValue([todayTask]);
     render(<InboxPage />);
-    expect(screen.getByText("Тут з'являться твої задачі")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Inbox поки порожній. Тут з'являться задачі, щойно ти щось надиктуєш."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "← У Capture" })).toHaveAttribute(
+      "href",
+      "/"
+    );
   });
 
   it("renders only inbox tasks", () => {
