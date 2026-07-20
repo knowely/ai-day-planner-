@@ -27,7 +27,7 @@ export default function TodayPage() {
                 aria-label={
                   task.done ? "Позначити незробленою" : "Позначити зробленою"
                 }
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 ${
                   task.done
                     ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
                     : "border-black/30 dark:border-white/30"
