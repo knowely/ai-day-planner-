@@ -21,7 +21,7 @@ const EXTRACT_TASKS_TOOL = {
               text: {
                 type: "string",
                 description:
-                  "A single, clearly worded task, starting with a capital letter, with filler words and dictation typos cleaned up.",
+                  "A single, clearly worded task, starting with a capital letter, with filler words and dictation typos cleaned up. Written in the SAME language as the user's original message — never translate it.",
               },
               priority: {
                 type: "string",
@@ -88,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
         messages: [
           {
             role: "system",
-            content: `Today's date is ${today}. Extract tasks from the user's message using the extract_tasks tool. Respond only by calling the tool.`,
+            content: `Today's date is ${today}. Extract tasks from the user's message using the extract_tasks tool. Respond only by calling the tool. Keep each task's text in the same language the user wrote in — never translate it.`,
           },
           { role: "user", content: text },
         ],
