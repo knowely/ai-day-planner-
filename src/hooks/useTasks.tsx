@@ -24,6 +24,7 @@ interface TasksContextValue {
   moveToToday: (id: string) => void;
   toggleDone: (id: string) => void;
   removeTask: (id: string) => void;
+  applyDayPlan: (orderedIds: string[]) => void;
 }
 
 const TasksContext = createContext<TasksContextValue | null>(null);
@@ -76,6 +77,27 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     setTasks((prev) => prev.filter((task) => task.id !== id));
   }
 
+  function applyDayPlan(orderedIds: string[]) {
+    setTasks((prev) => {
+      const byId = new Map(prev.map((task) => [task.id, task] as const));
+      const selected: Task[] = [];
+      const seen = new Set<string>();
+
+      for (const id of orderedIds) {
+        if (seen.has(id)) continue;
+        const task = byId.get(id);
+        if (!task || task.status !== "inbox") continue;
+        seen.add(id);
+        selected.push({ ...task, status: "today" as const });
+      }
+
+      if (selected.length === 0) return prev;
+
+      const rest = prev.filter((task) => !seen.has(task.id));
+      return [...selected, ...rest];
+    });
+  }
+
   return (
     <TasksContext.Provider
       value={{
@@ -85,6 +107,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         moveToToday,
         toggleDone,
         removeTask,
+        applyDayPlan,
       }}
     >
       {children}

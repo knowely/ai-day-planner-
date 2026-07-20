@@ -155,6 +155,88 @@ describe("useTasks", () => {
     });
   });
 
+  it("moves selected backlog tasks to today, in the given order, on top of existing tasks", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addTasksFromText(
+        "купити молоко\nпомити вікна\nзабрати посилку"
+      );
+    });
+    const [milk, windows, parcel] = result.current.tasks;
+
+    act(() => {
+      result.current.moveToToday(parcel.id);
+    });
+
+    act(() => {
+      result.current.applyDayPlan([windows.id, milk.id]);
+    });
+
+    expect(result.current.tasks.map((t) => t.id)).toEqual([
+      windows.id,
+      milk.id,
+      parcel.id,
+    ]);
+    expect(result.current.tasks[0].status).toBe("today");
+    expect(result.current.tasks[1].status).toBe("today");
+    expect(result.current.tasks[2].status).toBe("today");
+  });
+
+  it("ignores ids that are not in the current tasks", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addTasksFromText("купити молоко");
+    });
+    const id = result.current.tasks[0].id;
+
+    act(() => {
+      result.current.applyDayPlan(["does-not-exist", id]);
+    });
+
+    expect(result.current.tasks).toHaveLength(1);
+    expect(result.current.tasks[0].status).toBe("today");
+  });
+
+  it("ignores ids for tasks that are already in today (no duplication)", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addTasksFromText("купити молоко");
+    });
+    const id = result.current.tasks[0].id;
+
+    act(() => {
+      result.current.moveToToday(id);
+    });
+    act(() => {
+      result.current.applyDayPlan([id]);
+    });
+
+    expect(result.current.tasks).toHaveLength(1);
+    expect(result.current.tasks[0].status).toBe("today");
+  });
+
+  it("does not change state when applyDayPlan selects nothing", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addTasksFromText("купити молоко");
+    });
+    const before = result.current.tasks;
+
+    act(() => {
+      result.current.applyDayPlan([]);
+    });
+
+    expect(result.current.tasks).toBe(before);
+  });
+
   it("persists changes to localStorage", async () => {
     const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toEqual([]));
