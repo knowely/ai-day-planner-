@@ -2,10 +2,17 @@
 
 import { useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useAudioRecording } from "@/hooks/useAudioRecording";
 import type { ParsedTask } from "@/lib/tasks";
 
 const PARSE_TIMEOUT_MS = 15000;
+
+const ERROR_MESSAGES: Record<string, string> = {
+  "mic-permission-denied":
+    "Немає доступу до мікрофона. Дозволь доступ у налаштуваннях браузера або введи текст вручну.",
+  "transcribe-failed":
+    "Не вдалося розпізнати мовлення. Спробуй ще раз або введи текст вручну.",
+};
 
 export default function CapturePage() {
   const { addTasksFromText, addParsedTasks } = useTasks();
@@ -13,17 +20,19 @@ export default function CapturePage() {
   const [micMessage, setMicMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { isSupported, isListening, error, start, stop } = useSpeechRecognition(
-    (transcript) => {
+  const { isSupported, isRecording, isTranscribing, error, start, stop } =
+    useAudioRecording((transcript) => {
       setText((prev) => (prev ? `${prev}\n${transcript}` : transcript));
-    }
-  );
+    });
+
+  const statusMessage = isRecording
+    ? "Записую…"
+    : isTranscribing
+      ? "Розпізнаю…"
+      : null;
 
   const displayMessage =
-    micMessage ??
-    (error
-      ? `Помилка розпізнавання (${error}). Спробуй ще раз або введи текст вручну.`
-      : null);
+    statusMessage ?? micMessage ?? (error ? ERROR_MESSAGES[error] : null);
 
   async function handleAdd() {
     const currentText = text;
@@ -73,10 +82,10 @@ export default function CapturePage() {
       return;
     }
     setMicMessage(null);
-    if (isListening) {
+    if (isRecording) {
       stop();
     } else {
-      start();
+      void start();
     }
   }
 
@@ -99,10 +108,11 @@ export default function CapturePage() {
         <button
           type="button"
           onClick={handleMicClick}
-          aria-pressed={isListening}
+          disabled={isTranscribing}
+          aria-pressed={isRecording}
           aria-label="Диктувати"
-          className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl ${
-            isListening
+          className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl disabled:opacity-30 ${
+            isRecording
               ? "bg-red-500 text-white"
               : "bg-zinc-100 text-black dark:bg-zinc-800 dark:text-white"
           }`}

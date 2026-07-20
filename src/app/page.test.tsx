@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CapturePage from "./page";
 
-const { addTasksFromText, addParsedTasks, useSpeechRecognitionMock } = vi.hoisted(
+const { addTasksFromText, addParsedTasks, useAudioRecordingMock } = vi.hoisted(
   () => ({
     addTasksFromText: vi.fn(),
     addParsedTasks: vi.fn(),
-    useSpeechRecognitionMock: vi.fn(),
+    useAudioRecordingMock: vi.fn(),
   })
 );
 
@@ -15,19 +15,20 @@ vi.mock("@/hooks/useTasks", () => ({
   useTasks: () => ({ addTasksFromText, addParsedTasks }),
 }));
 
-vi.mock("@/hooks/useSpeechRecognition", () => ({
-  useSpeechRecognition: (onResult: (text: string) => void) =>
-    useSpeechRecognitionMock(onResult),
+vi.mock("@/hooks/useAudioRecording", () => ({
+  useAudioRecording: (onTranscript: (text: string) => void) =>
+    useAudioRecordingMock(onTranscript),
 }));
 
 describe("CapturePage", () => {
   beforeEach(() => {
     addTasksFromText.mockClear();
     addParsedTasks.mockClear();
-    useSpeechRecognitionMock.mockReset();
-    useSpeechRecognitionMock.mockReturnValue({
+    useAudioRecordingMock.mockReset();
+    useAudioRecordingMock.mockReturnValue({
       isSupported: true,
-      isListening: false,
+      isRecording: false,
+      isTranscribing: false,
       error: null,
       start: vi.fn(),
       stop: vi.fn(),
@@ -176,9 +177,11 @@ describe("CapturePage", () => {
   });
 
   it("shows a fallback message when the mic is tapped without browser support", async () => {
-    useSpeechRecognitionMock.mockReturnValue({
+    useAudioRecordingMock.mockReturnValue({
       isSupported: false,
-      isListening: false,
+      isRecording: false,
+      isTranscribing: false,
+      error: null,
       start: vi.fn(),
       stop: vi.fn(),
     });
@@ -196,9 +199,11 @@ describe("CapturePage", () => {
 
   it("calls start() when the mic is tapped with browser support", async () => {
     const start = vi.fn();
-    useSpeechRecognitionMock.mockReturnValue({
+    useAudioRecordingMock.mockReturnValue({
       isSupported: true,
-      isListening: false,
+      isRecording: false,
+      isTranscribing: false,
+      error: null,
       start,
       stop: vi.fn(),
     });
@@ -210,11 +215,72 @@ describe("CapturePage", () => {
     expect(start).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the recognition error code when speech recognition fails", () => {
-    useSpeechRecognitionMock.mockReturnValue({
+  it("calls stop() when the mic is tapped while recording", async () => {
+    const stop = vi.fn();
+    useAudioRecordingMock.mockReturnValue({
       isSupported: true,
-      isListening: false,
-      error: "network",
+      isRecording: true,
+      isTranscribing: false,
+      error: null,
+      start: vi.fn(),
+      stop,
+    });
+    const user = userEvent.setup();
+    render(<CapturePage />);
+
+    await user.click(screen.getByRole("button", { name: "Диктувати" }));
+
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a recording status message while recording", () => {
+    useAudioRecordingMock.mockReturnValue({
+      isSupported: true,
+      isRecording: true,
+      isTranscribing: false,
+      error: null,
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+    render(<CapturePage />);
+
+    expect(screen.getByText("Записую…")).toBeInTheDocument();
+  });
+
+  it("shows a transcribing status message while transcribing", () => {
+    useAudioRecordingMock.mockReturnValue({
+      isSupported: true,
+      isRecording: false,
+      isTranscribing: true,
+      error: null,
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+    render(<CapturePage />);
+
+    expect(screen.getByText("Розпізнаю…")).toBeInTheDocument();
+  });
+
+  it("disables the mic button while transcribing", () => {
+    useAudioRecordingMock.mockReturnValue({
+      isSupported: true,
+      isRecording: false,
+      isTranscribing: true,
+      error: null,
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+    render(<CapturePage />);
+
+    expect(screen.getByRole("button", { name: "Диктувати" })).toBeDisabled();
+  });
+
+  it("shows a permission error message when the microphone is denied", () => {
+    useAudioRecordingMock.mockReturnValue({
+      isSupported: true,
+      isRecording: false,
+      isTranscribing: false,
+      error: "mic-permission-denied",
       start: vi.fn(),
       stop: vi.fn(),
     });
@@ -222,7 +288,25 @@ describe("CapturePage", () => {
 
     expect(
       screen.getByText(
-        "Помилка розпізнавання (network). Спробуй ще раз або введи текст вручну."
+        "Немає доступу до мікрофона. Дозволь доступ у налаштуваннях браузера або введи текст вручну."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("shows a transcription error message when transcription fails", () => {
+    useAudioRecordingMock.mockReturnValue({
+      isSupported: true,
+      isRecording: false,
+      isTranscribing: false,
+      error: "transcribe-failed",
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+    render(<CapturePage />);
+
+    expect(
+      screen.getByText(
+        "Не вдалося розпізнати мовлення. Спробуй ще раз або введи текст вручну."
       )
     ).toBeInTheDocument();
   });
