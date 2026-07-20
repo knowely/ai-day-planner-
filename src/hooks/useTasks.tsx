@@ -9,15 +9,18 @@ import {
 } from "react";
 import {
   createTask,
+  createTaskFromParsed,
   loadTasks,
   parseCaptureText,
   saveTasks,
+  type ParsedTask,
   type Task,
 } from "@/lib/tasks";
 
 interface TasksContextValue {
   tasks: Task[];
   addTasksFromText: (text: string) => void;
+  addParsedTasks: (parsed: ParsedTask[]) => void;
   moveToToday: (id: string) => void;
   toggleDone: (id: string) => void;
   removeTask: (id: string) => void;
@@ -47,6 +50,12 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     setTasks((prev) => [...prev, ...lines.map(createTask)]);
   }
 
+  function addParsedTasks(parsed: ParsedTask[]) {
+    const valid = parsed.filter((item) => item.text.trim().length > 0);
+    if (valid.length === 0) return;
+    setTasks((prev) => [...prev, ...valid.map(createTaskFromParsed)]);
+  }
+
   function moveToToday(id: string) {
     setTasks((prev) =>
       prev.map((task) =>
@@ -69,7 +78,14 @@ export function TasksProvider({ children }: { children: ReactNode }) {
 
   return (
     <TasksContext.Provider
-      value={{ tasks, addTasksFromText, moveToToday, toggleDone, removeTask }}
+      value={{
+        tasks,
+        addTasksFromText,
+        addParsedTasks,
+        moveToToday,
+        toggleDone,
+        removeTask,
+      }}
     >
       {children}
     </TasksContext.Provider>

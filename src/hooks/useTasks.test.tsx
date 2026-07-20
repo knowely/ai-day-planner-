@@ -101,6 +101,60 @@ describe("useTasks", () => {
     expect(result.current.tasks).toEqual([]);
   });
 
+  it("adds tasks with AI-provided metadata", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addParsedTasks([
+        {
+          text: "Купити молоко",
+          priority: "high",
+          estimatedMinutes: 10,
+          deadline: "2026-07-25",
+        },
+      ]);
+    });
+
+    expect(result.current.tasks).toHaveLength(1);
+    expect(result.current.tasks[0]).toMatchObject({
+      text: "Купити молоко",
+      status: "inbox",
+      done: false,
+      priority: "high",
+      estimatedMinutes: 10,
+      deadline: "2026-07-25",
+    });
+  });
+
+  it("ignores parsed items with empty text", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addParsedTasks([
+        { text: "   ", priority: "medium", estimatedMinutes: null, deadline: null },
+      ]);
+    });
+
+    expect(result.current.tasks).toEqual([]);
+  });
+
+  it("gives line-split tasks default metadata", async () => {
+    const { result } = renderHook(() => useTasks(), { wrapper });
+    await waitFor(() => expect(result.current.tasks).toEqual([]));
+
+    act(() => {
+      result.current.addTasksFromText("купити молоко");
+    });
+
+    expect(result.current.tasks[0]).toMatchObject({
+      priority: "medium",
+      estimatedMinutes: null,
+      deadline: null,
+    });
+  });
+
   it("persists changes to localStorage", async () => {
     const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toEqual([]));
