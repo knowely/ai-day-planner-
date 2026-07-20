@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useAudioRecording } from "@/hooks/useAudioRecording";
+import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding";
+import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import type { ParsedTask } from "@/lib/tasks";
 
 const PARSE_TIMEOUT_MS = 15000;
@@ -19,11 +21,26 @@ export default function CapturePage() {
   const [text, setText] = useState("");
   const [micMessage, setMicMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isSupported, isRecording, isTranscribing, error, start, stop } =
     useAudioRecording((transcript) => {
       setText((prev) => (prev ? `${prev}\n${transcript}` : transcript));
     });
+
+  useEffect(() => {
+    // Reading localStorage must happen post-mount so the first client render
+    // matches the server's render (overlay hidden) and avoids a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!hasSeenOnboarding()) setShowOnboarding(true);
+  }, []);
+
+  function handleOnboardingStart() {
+    markOnboardingSeen();
+    setShowOnboarding(false);
+    textareaRef.current?.focus();
+  }
 
   const statusMessage = isRecording
     ? "Записую…"
@@ -91,8 +108,10 @@ export default function CapturePage() {
 
   return (
     <div className="flex h-full min-h-[calc(100dvh-5rem)] flex-col gap-4 p-4">
+      {showOnboarding && <OnboardingOverlay onStart={handleOnboardingStart} />}
       <h1 className="text-2xl font-semibold">Що в голові?</h1>
       <textarea
+        ref={textareaRef}
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder="Що в голові?"
@@ -102,6 +121,14 @@ export default function CapturePage() {
       {displayMessage && (
         <p role="status" className="text-sm text-zinc-500 dark:text-zinc-400">
           {displayMessage}
+        </p>
+      )}
+      {text.trim().length === 0 && !displayMessage && (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Натисни 🎤 і просто проговори все, що треба зробити.
+          <br />
+          Напр.: «Завтра прибрати квартиру, це важливо, десь година. І
+          зібрати валізу.»
         </p>
       )}
       <div className="flex items-center gap-4">

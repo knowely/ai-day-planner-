@@ -22,6 +22,7 @@ vi.mock("@/hooks/useAudioRecording", () => ({
 
 describe("CapturePage", () => {
   beforeEach(() => {
+    window.localStorage.setItem("ai-day-planner:onboarding-seen", "true");
     addTasksFromText.mockClear();
     addParsedTasks.mockClear();
     useAudioRecordingMock.mockReset();
@@ -309,5 +310,61 @@ describe("CapturePage", () => {
         "Не вдалося розпізнати мовлення. Спробуй ще раз або введи текст вручну."
       )
     ).toBeInTheDocument();
+  });
+
+  describe("onboarding", () => {
+    it("shows the onboarding overlay on first visit", async () => {
+      window.localStorage.clear();
+      render(<CapturePage />);
+      await waitFor(() =>
+        expect(screen.getByText("Плануй день голосом")).toBeInTheDocument()
+      );
+    });
+
+    it("does not show the onboarding overlay once it has been seen", async () => {
+      render(<CapturePage />);
+      await waitFor(() => {
+        expect(
+          screen.queryByText("Плануй день голосом")
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it("hides the overlay, remembers the flag, and focuses the textarea when Почати is clicked", async () => {
+      window.localStorage.clear();
+      const user = userEvent.setup();
+      render(<CapturePage />);
+
+      await waitFor(() =>
+        expect(screen.getByText("Плануй день голосом")).toBeInTheDocument()
+      );
+      await user.click(screen.getByRole("button", { name: "Почати" }));
+
+      expect(screen.queryByText("Плануй день голосом")).not.toBeInTheDocument();
+      expect(
+        window.localStorage.getItem("ai-day-planner:onboarding-seen")
+      ).toBe("true");
+      expect(screen.getByLabelText("Що в голові?")).toHaveFocus();
+    });
+  });
+
+  describe("empty-state hint", () => {
+    it("shows the hint when the field is empty", () => {
+      render(<CapturePage />);
+      expect(
+        screen.getByText(/Натисни 🎤 і просто проговори все/)
+      ).toBeInTheDocument();
+    });
+
+    it("hides the hint once text is typed", async () => {
+      const user = userEvent.setup();
+      render(<CapturePage />);
+
+      await user.type(screen.getByLabelText("Що в голові?"), "купити молоко");
+
+      expect(
+        screen.queryByText(/Натисни 🎤 і просто проговори все/)
+      ).not.toBeInTheDocument();
+    });
   });
 });
