@@ -84,6 +84,15 @@ describe("formatTaskMeta", () => {
       formatTaskMeta({ priority: "high", estimatedMinutes: 30, deadline: "2026-12-01" })
     ).toBe("🔴 · ~30 хв · 01.12");
   });
+
+  it("does not crash on a pre-Phase-2 task shape (fields missing entirely)", () => {
+    const legacyShape = {} as unknown as {
+      priority: "low" | "medium" | "high";
+      estimatedMinutes: number | null;
+      deadline: string | null;
+    };
+    expect(formatTaskMeta(legacyShape)).toBe("🟡");
+  });
 });
 
 describe("loadTasks / saveTasks", () => {
@@ -109,5 +118,27 @@ describe("loadTasks / saveTasks", () => {
   it("returns an empty array when stored value is not an array", () => {
     window.localStorage.setItem("ai-day-planner:tasks", JSON.stringify({ oops: true }));
     expect(loadTasks()).toEqual([]);
+  });
+
+  it("backfills default metadata onto pre-Phase-2 tasks missing the new fields", () => {
+    const legacyTask = {
+      id: "1",
+      text: "старий запис",
+      status: "inbox",
+      done: false,
+      createdAt: 1,
+      // no priority/estimatedMinutes/deadline — shape from before this feature shipped
+    };
+    window.localStorage.setItem("ai-day-planner:tasks", JSON.stringify([legacyTask]));
+
+    const loaded = loadTasks();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0]).toMatchObject({
+      id: "1",
+      text: "старий запис",
+      priority: "medium",
+      estimatedMinutes: null,
+      deadline: null,
+    });
   });
 });

@@ -63,15 +63,32 @@ export function createTaskFromParsed(parsed: ParsedTask): Task {
 export function formatTaskMeta(
   task: Pick<Task, "priority" | "estimatedMinutes" | "deadline">
 ): string {
-  const parts = [PRIORITY_ICON[task.priority]];
-  if (task.estimatedMinutes !== null) {
+  const icon = PRIORITY_ICON[task.priority] ?? PRIORITY_ICON.medium;
+  const parts = [icon];
+  if (typeof task.estimatedMinutes === "number") {
     parts.push(`~${task.estimatedMinutes} хв`);
   }
-  if (task.deadline !== null) {
+  if (typeof task.deadline === "string") {
     const [, month, day] = task.deadline.split("-");
     parts.push(`${day}.${month}`);
   }
   return parts.join(" · ");
+}
+
+// Tasks saved before priority/estimatedMinutes/deadline existed are missing
+// those fields entirely — backfill safe defaults so old localStorage data
+// (from before this feature shipped) doesn't crash formatTaskMeta.
+function normalizeTask(raw: Task): Task {
+  return {
+    ...raw,
+    priority:
+      raw.priority === "low" || raw.priority === "medium" || raw.priority === "high"
+        ? raw.priority
+        : "medium",
+    estimatedMinutes:
+      typeof raw.estimatedMinutes === "number" ? raw.estimatedMinutes : null,
+    deadline: typeof raw.deadline === "string" ? raw.deadline : null,
+  };
 }
 
 export function loadTasks(): Task[] {
@@ -81,7 +98,7 @@ export function loadTasks(): Task[] {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed as Task[];
+    return (parsed as Task[]).map(normalizeTask);
   } catch {
     return [];
   }
