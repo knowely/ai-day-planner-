@@ -58,5 +58,8 @@ function sanitizeDeadline(value: unknown): string | null {
     return null;
   }
   const parsed = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(parsed.getTime()) ? null : value;
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const roundTripped = `${parsed.getUTCFullYear().toString().padStart(4, "0")}-${(parsed.getUTCMonth() + 1).toString().padStart(2, "0")}-${parsed.getUTCDate().toString().padStart(2, "0")}`;
+  return roundTripped === value ? value : null;
 }

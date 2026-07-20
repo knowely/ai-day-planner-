@@ -96,6 +96,26 @@ describe("sanitizeParsedTasks", () => {
     expect(result[1].deadline).toBeNull();
   });
 
+  it("defaults an impossible calendar date to null", () => {
+    const result = sanitizeParsedTasks({
+      tasks: [
+        { text: "a", priority: "low", estimatedMinutes: null, deadline: "2026-02-30" },
+        { text: "b", priority: "low", estimatedMinutes: null, deadline: "2026-04-31" },
+        { text: "c", priority: "low", estimatedMinutes: null, deadline: "2026-02-29" },
+      ],
+    });
+    expect(result[0].deadline).toBeNull();
+    expect(result[1].deadline).toBeNull();
+    expect(result[2].deadline).toBeNull();
+  });
+
+  it("keeps a valid leap-year February 29th deadline", () => {
+    const result = sanitizeParsedTasks({
+      tasks: [{ text: "a", priority: "low", estimatedMinutes: null, deadline: "2028-02-29" }],
+    });
+    expect(result[0].deadline).toBe("2028-02-29");
+  });
+
   it("keeps a valid deadline unchanged", () => {
     const result = sanitizeParsedTasks({
       tasks: [{ text: "a", priority: "low", estimatedMinutes: null, deadline: "2026-07-25" }],
