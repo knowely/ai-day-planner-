@@ -30,6 +30,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // Reading localStorage must happen post-mount so the first client render
+    // matches the server's empty-array render and avoids a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTasks(loadTasks());
     setHydrated(true);
   }, []);
