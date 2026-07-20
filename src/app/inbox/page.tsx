@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTaskMeta } from "@/lib/tasks";
 import { useTasks } from "@/hooks/useTasks";
 
 export default function InboxPage() {
@@ -20,7 +21,12 @@ export default function InboxPage() {
               key={task.id}
               className="flex items-center gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/10"
             >
-              <span className="flex-1 text-lg">{task.text}</span>
+              <div className="flex-1">
+                <span className="block text-lg">{task.text}</span>
+                <span className="block text-sm text-zinc-500 dark:text-zinc-400">
+                  {formatTaskMeta(task)}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => moveToToday(task.id)}

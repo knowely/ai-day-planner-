@@ -70,6 +70,12 @@ describe("TodayPage", () => {
     expect(screen.queryByText("ще не розкладено")).not.toBeInTheDocument();
   });
 
+  it("renders the priority/time/deadline metadata line", () => {
+    tasksMock.mockReturnValue([todayTask]);
+    render(<TodayPage />);
+    expect(screen.getByText("🟢 · ~15 хв")).toBeInTheDocument();
+  });
+
   it("shows done tasks with a done-styled checkbox", () => {
     tasksMock.mockReturnValue([doneTask]);
     render(<TodayPage />);

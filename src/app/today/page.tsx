@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTaskMeta } from "@/lib/tasks";
 import { useTasks } from "@/hooks/useTasks";
 
 export default function TodayPage() {
@@ -35,13 +36,18 @@ export default function TodayPage() {
               >
                 {task.done ? "✓" : ""}
               </button>
-              <span
-                className={`flex-1 text-lg ${
-                  task.done ? "text-zinc-400 line-through" : ""
-                }`}
-              >
-                {task.text}
-              </span>
+              <div className="flex-1">
+                <span
+                  className={`block text-lg ${
+                    task.done ? "text-zinc-400 line-through" : ""
+                  }`}
+                >
+                  {task.text}
+                </span>
+                <span className="block text-sm text-zinc-500 dark:text-zinc-400">
+                  {formatTaskMeta(task)}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => removeTask(task.id)}

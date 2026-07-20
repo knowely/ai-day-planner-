@@ -58,6 +58,12 @@ describe("InboxPage", () => {
     expect(screen.queryByText("вже розкладено")).not.toBeInTheDocument();
   });
 
+  it("renders the priority/time/deadline metadata line", () => {
+    tasksMock.mockReturnValue([inboxTask]);
+    render(<InboxPage />);
+    expect(screen.getByText("🔴 · ~15 хв · 25.07")).toBeInTheDocument();
+  });
+
   it("moves a task to today on click", async () => {
     tasksMock.mockReturnValue([inboxTask]);
     const user = userEvent.setup();
