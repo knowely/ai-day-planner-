@@ -21,12 +21,6 @@ export interface ParsedTask {
 
 const STORAGE_KEY = "ai-day-planner:tasks";
 
-const PRIORITY_ICON: Record<TaskPriority, string> = {
-  high: "🔴",
-  medium: "🟡",
-  low: "🟢",
-};
-
 export function parseCaptureText(text: string): string[] {
   return text
     .split("\n")
@@ -60,21 +54,6 @@ export function createTaskFromParsed(parsed: ParsedTask): Task {
   };
 }
 
-export function formatTaskMeta(
-  task: Pick<Task, "priority" | "estimatedMinutes" | "deadline">
-): string {
-  const icon = PRIORITY_ICON[task.priority] ?? PRIORITY_ICON.medium;
-  const parts = [icon];
-  if (typeof task.estimatedMinutes === "number") {
-    parts.push(`~${task.estimatedMinutes} хв`);
-  }
-  if (typeof task.deadline === "string") {
-    const [, month, day] = task.deadline.split("-");
-    parts.push(`${day}.${month}`);
-  }
-  return parts.join(" · ");
-}
-
 function pluralizeZadacha(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
@@ -102,7 +81,7 @@ export function formatTodayCount(count: number): string {
 
 // Tasks saved before priority/estimatedMinutes/deadline existed are missing
 // those fields entirely — backfill safe defaults so old localStorage data
-// (from before this feature shipped) doesn't crash formatTaskMeta.
+// (from before this feature shipped) doesn't crash when rendered.
 function normalizeTask(raw: Task): Task {
   return {
     ...raw,

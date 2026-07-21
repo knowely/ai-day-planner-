@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { formatBacklogCount, formatPlanSummary, formatTaskMeta } from "@/lib/tasks";
+import { Sparkles, TriangleAlert, X } from "lucide-react";
+import { formatBacklogCount, formatPlanSummary, formatTodayCount } from "@/lib/tasks";
+import { TaskMetaRow } from "@/components/TaskMetaRow";
 import { useTasks } from "@/hooks/useTasks";
 
 const PLAN_DAY_TIMEOUT_MS = 15000;
@@ -110,22 +112,25 @@ export default function TodayPage() {
             value={constraints}
             onChange={(event) => setConstraints(event.target.value)}
             placeholder="Є обмеження? Напр.: зустрічі 14–16, лікар о 10"
-            className="h-12 rounded-full border border-black/10 px-4 text-base dark:border-white/10"
+            className="h-12 rounded-control border border-surface-border bg-surface px-4 text-base text-foreground placeholder:text-text-placeholder outline-none focus:border-accent"
           />
           <button
             type="button"
             onClick={handlePlanDay}
             disabled={isPlanning}
-            className="h-16 rounded-full bg-black text-lg font-medium text-white disabled:opacity-30 dark:bg-white dark:text-black"
+            className="flex h-16 items-center justify-center gap-2 rounded-control bg-accent text-lg font-medium text-white shadow-[0_8px_22px_rgba(110,86,247,0.4)] disabled:opacity-30 disabled:shadow-none"
           >
-            {isPlanning
-              ? "AI планує твій день…"
-              : hasPlanned
-                ? "↻ Перепланувати"
-                : "✨ Сформувати день"}
+            {isPlanning ? (
+              "AI планує твій день…"
+            ) : (
+              <>
+                <Sparkles size={18} strokeWidth={2} aria-hidden="true" />
+                {hasPlanned ? "Перепланувати" : "Сформувати день"}
+              </>
+            )}
           </button>
           {planError && (
-            <p role="status" className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p role="status" className="text-sm text-text-secondary">
               {planError}
             </p>
           )}
@@ -133,19 +138,32 @@ export default function TodayPage() {
       )}
       {planSummary && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {formatPlanSummary(planSummary.totalMinutes)}
-          </p>
+          <div>
+            <p className="text-[28px] font-extrabold">
+              {formatPlanSummary(planSummary.totalMinutes)}
+            </p>
+            <p className="text-sm text-text-secondary">
+              {formatTodayCount(todayTasks.length)}
+            </p>
+          </div>
           {planSummary.overloaded && (
-            <p className="rounded-2xl bg-amber-100 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-              ⚠️ {planSummary.note} Лишила {planSummary.deferredCount} на потім (у
-              беклозі).
+            <p className="flex items-start gap-2 rounded-banner border border-[rgba(255,176,32,0.28)] bg-[rgba(255,176,32,0.1)] p-3 text-sm text-priority-medium-text">
+              <TriangleAlert
+                size={16}
+                strokeWidth={2}
+                className="mt-0.5 shrink-0"
+                aria-hidden="true"
+              />
+              <span>
+                {planSummary.note} Лишила {planSummary.deferredCount} на потім
+                (у беклозі).
+              </span>
             </p>
           )}
         </div>
       )}
       {todayTasks.length === 0 ? (
-        <p className="text-zinc-500 dark:text-zinc-400">
+        <p className="text-text-secondary">
           {backlogTasks.length === 0
             ? "Спершу додай задачі в Inbox — і AI складе твій день."
             : formatBacklogCount(backlogTasks.length)}
@@ -155,7 +173,7 @@ export default function TodayPage() {
           {todayTasks.map((task) => (
             <li
               key={task.id}
-              className="flex items-center gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/10"
+              className="flex items-center gap-3 rounded-card border border-surface-border bg-surface p-4"
             >
               <button
                 type="button"
@@ -166,31 +184,35 @@ export default function TodayPage() {
                 }
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 ${
                   task.done
-                    ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                    : "border-black/30 dark:border-white/30"
+                    ? "border-accent bg-accent text-white"
+                    : "border-surface-border"
                 }`}
               >
                 {task.done ? "✓" : ""}
               </button>
               <div className="flex-1">
                 <span
-                  className={`block text-lg ${
-                    task.done ? "text-zinc-400 line-through" : ""
+                  className={`block text-lg font-bold ${
+                    task.done ? "text-text-secondary line-through" : ""
                   }`}
                 >
                   {task.text}
                 </span>
-                <span className="block text-sm text-zinc-500 dark:text-zinc-400">
-                  {formatTaskMeta(task)}
-                </span>
+                <div className="mt-2">
+                  <TaskMetaRow
+                    priority={task.priority}
+                    estimatedMinutes={task.estimatedMinutes}
+                    deadline={task.deadline}
+                  />
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => removeTask(task.id)}
                 aria-label="Видалити"
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-xl dark:bg-zinc-800"
+                className="flex h-12 w-12 items-center justify-center rounded-small bg-[#1F1F25] text-text-secondary"
               >
-                ×
+                <X size={15} strokeWidth={2.2} aria-hidden="true" />
               </button>
             </li>
           ))}

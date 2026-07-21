@@ -4,7 +4,6 @@ import {
   createTaskFromParsed,
   formatBacklogCount,
   formatPlanSummary,
-  formatTaskMeta,
   formatTodayCount,
   loadTasks,
   parseCaptureText,
@@ -60,41 +59,6 @@ describe("createTaskFromParsed", () => {
     expect(task.deadline).toBe("2026-07-25");
     expect(typeof task.id).toBe("string");
     expect(typeof task.createdAt).toBe("number");
-  });
-});
-
-describe("formatTaskMeta", () => {
-  it("shows only the priority dot when no other metadata is present", () => {
-    expect(
-      formatTaskMeta({ priority: "medium", estimatedMinutes: null, deadline: null })
-    ).toBe("🟡");
-  });
-
-  it("adds estimated minutes when present", () => {
-    expect(
-      formatTaskMeta({ priority: "high", estimatedMinutes: 15, deadline: null })
-    ).toBe("🔴 · ~15 хв");
-  });
-
-  it("adds a formatted deadline when present", () => {
-    expect(
-      formatTaskMeta({ priority: "low", estimatedMinutes: null, deadline: "2026-07-25" })
-    ).toBe("🟢 · 25.07");
-  });
-
-  it("combines minutes and deadline", () => {
-    expect(
-      formatTaskMeta({ priority: "high", estimatedMinutes: 30, deadline: "2026-12-01" })
-    ).toBe("🔴 · ~30 хв · 01.12");
-  });
-
-  it("does not crash on a pre-Phase-2 task shape (fields missing entirely)", () => {
-    const legacyShape = {} as unknown as {
-      priority: "low" | "medium" | "high";
-      estimatedMinutes: number | null;
-      deadline: string | null;
-    };
-    expect(formatTaskMeta(legacyShape)).toBe("🟡");
   });
 });
 

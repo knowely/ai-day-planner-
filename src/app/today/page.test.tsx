@@ -112,7 +112,8 @@ describe("TodayPage", () => {
   it("renders the priority/time/deadline metadata line", () => {
     tasksMock.mockReturnValue([todayTask]);
     render(<TodayPage />);
-    expect(screen.getByText("🟢 · ~15 хв")).toBeInTheDocument();
+    expect(screen.getByText("● Низький")).toBeInTheDocument();
+    expect(screen.getByText("~15 хв")).toBeInTheDocument();
   });
 
   it("shows done tasks with a done-styled checkbox", () => {
@@ -150,7 +151,7 @@ describe("TodayPage", () => {
       tasksMock.mockReturnValue([todayTask]);
       render(<TodayPage />);
       expect(
-        screen.queryByRole("button", { name: "✨ Сформувати день" })
+        screen.queryByRole("button", { name: "Сформувати день" })
       ).not.toBeInTheDocument();
     });
 
@@ -158,7 +159,7 @@ describe("TodayPage", () => {
       tasksMock.mockReturnValue([inboxTask, todayTask]);
       render(<TodayPage />);
       expect(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
+        screen.getByRole("button", { name: "Сформувати день" })
       ).toBeInTheDocument();
     });
 
@@ -174,9 +175,7 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() => expect(applyDayPlan).toHaveBeenCalledWith(["1"]));
     });
@@ -195,9 +194,7 @@ describe("TodayPage", () => {
         screen.getByPlaceholderText("Є обмеження? Напр.: зустрічі 14–16, лікар о 10"),
         "  зустрічі 14–16  "
       );
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
       const [url, requestInit] = fetchMock.mock.calls[0];
@@ -230,9 +227,7 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       expect(
         screen.getByRole("button", { name: "AI планує твій день…" })
@@ -241,7 +236,7 @@ describe("TodayPage", () => {
       resolveFetch({ ok: true, json: async () => planResponse() });
       await waitFor(() =>
         expect(
-          screen.getByRole("button", { name: "↻ Перепланувати" })
+          screen.getByRole("button", { name: "Перепланувати" })
         ).toBeInTheDocument()
       );
     });
@@ -255,9 +250,7 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() =>
         expect(
@@ -278,9 +271,7 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() =>
         expect(
@@ -302,19 +293,23 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() =>
         expect(
-          screen.getByRole("button", { name: "↻ Перепланувати" })
+          screen.getByRole("button", { name: "Перепланувати" })
         ).toBeInTheDocument()
       );
     });
 
-    it("shows the time summary after a successful plan", async () => {
-      tasksMock.mockReturnValue([inboxTask]);
+    it("shows the time summary and today-count subtitle after a successful plan", async () => {
+      // tasksMock is static (mockReturnValue, not mockReturnValueOnce), and
+      // applyDayPlan is a no-op mock — it never actually moves inboxTask to
+      // "today". Including todayTask alongside inboxTask here means
+      // todayTasks.length is 1 both before and after the click, so the
+      // subtitle assertion reflects the mocked tasks list, independent of
+      // whatever the mocked applyDayPlan does or doesn't do.
+      tasksMock.mockReturnValue([inboxTask, todayTask]);
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({
@@ -325,13 +320,12 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() =>
         expect(screen.getByText("~2 год заплановано")).toBeInTheDocument()
       );
+      expect(screen.getByText("1 задача на сьогодні")).toBeInTheDocument();
     });
 
     it("shows a warning banner with the note and deferred count when overloaded", async () => {
@@ -353,14 +347,12 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() =>
         expect(
           screen.getByText(
-            "⚠️ Задач більше, ніж влізе у день. Лишила 2 на потім (у беклозі)."
+            "Задач більше, ніж влізе у день. Лишила 2 на потім (у беклозі)."
           )
         ).toBeInTheDocument()
       );
@@ -379,14 +371,12 @@ describe("TodayPage", () => {
       const user = userEvent.setup();
       render(<TodayPage />);
 
-      await user.click(
-        screen.getByRole("button", { name: "✨ Сформувати день" })
-      );
+      await user.click(screen.getByRole("button", { name: "Сформувати день" }));
 
       await waitFor(() =>
         expect(screen.getByText("~15 хв заплановано")).toBeInTheDocument()
       );
-      expect(screen.queryByText(/⚠️/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Лишила/)).not.toBeInTheDocument();
     });
   });
 });
