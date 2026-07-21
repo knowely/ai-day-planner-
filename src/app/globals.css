@@ -1,22 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0E0E11;
+  --foreground: #F4F4F6;
+  --surface: #1A1A1F;
+  --surface-border: #2A2A31;
+  --accent: #6E56F7;
+  --accent-light: #8F7BFF;
+  --text-secondary: #9A9AA5;
+  --text-placeholder: #6B6B75;
+  --priority-high: #FF5A5F;
+  --priority-high-text: #FF7A7E;
+  --priority-medium: #FFB020;
+  --priority-medium-text: #FFC155;
+  --priority-low: #2ECC71;
+  --priority-low-text: #4ADE80;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-border: var(--surface-border);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-priority-high: var(--priority-high);
+  --color-priority-high-text: var(--priority-high-text);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-medium-text: var(--priority-medium-text);
+  --color-priority-low: var(--priority-low);
+  --color-priority-low-text: var(--priority-low-text);
+
+  --radius-card: 18px;
+  --radius-control: 16px;
+  --radius-small: 12px;
+  --radius-tag: 9px;
+  --radius-banner: 14px;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

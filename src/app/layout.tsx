@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "Скинь усе, що в голові, — розклади по Inbox і Today.",
 };
 
-export const viewport: Viewport = { viewportFit: "cover" };
+export const viewport: Viewport = { viewportFit: "cover", themeColor: "#0E0E11" };
 
 export default function RootLayout({
   children,
