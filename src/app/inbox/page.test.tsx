@@ -69,7 +69,9 @@ describe("InboxPage", () => {
   it("renders the priority/time/deadline metadata line", () => {
     tasksMock.mockReturnValue([inboxTask]);
     render(<InboxPage />);
-    expect(screen.getByText("🔴 · ~15 хв · 25.07")).toBeInTheDocument();
+    expect(screen.getByText("● Високий")).toBeInTheDocument();
+    expect(screen.getByText("~15 хв")).toBeInTheDocument();
+    expect(screen.getByText("25.07")).toBeInTheDocument();
   });
 
   it("moves a task to today on click", async () => {
@@ -77,7 +79,7 @@ describe("InboxPage", () => {
     const user = userEvent.setup();
     render(<InboxPage />);
 
-    await user.click(screen.getByRole("button", { name: "→ Сьогодні" }));
+    await user.click(screen.getByRole("button", { name: "Сьогодні" }));
 
     expect(moveToToday).toHaveBeenCalledWith("1");
   });
