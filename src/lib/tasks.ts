@@ -96,6 +96,10 @@ export function formatPlanSummary(totalMinutes: number): string {
   return `~${hoursLabel} год заплановано`;
 }
 
+export function formatTodayCount(count: number): string {
+  return `${count} ${pluralizeZadacha(count)} на сьогодні`;
+}
+
 // Tasks saved before priority/estimatedMinutes/deadline existed are missing
 // those fields entirely — backfill safe defaults so old localStorage data
 // (from before this feature shipped) doesn't crash formatTaskMeta.

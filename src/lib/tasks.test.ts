@@ -5,6 +5,7 @@ import {
   formatBacklogCount,
   formatPlanSummary,
   formatTaskMeta,
+  formatTodayCount,
   loadTasks,
   parseCaptureText,
   saveTasks,
@@ -145,6 +146,23 @@ describe("formatPlanSummary", () => {
 
   it("handles zero minutes", () => {
     expect(formatPlanSummary(0)).toBe("~0 хв заплановано");
+  });
+});
+
+describe("formatTodayCount", () => {
+  it("uses the singular form for 1", () => {
+    expect(formatTodayCount(1)).toBe("1 задача на сьогодні");
+  });
+
+  it("uses the few form for 2-4", () => {
+    expect(formatTodayCount(2)).toBe("2 задачі на сьогодні");
+    expect(formatTodayCount(4)).toBe("4 задачі на сьогодні");
+  });
+
+  it("uses the many form for 5-20 and for 0", () => {
+    expect(formatTodayCount(5)).toBe("5 задач на сьогодні");
+    expect(formatTodayCount(11)).toBe("11 задач на сьогодні");
+    expect(formatTodayCount(0)).toBe("0 задач на сьогодні");
   });
 });
 
