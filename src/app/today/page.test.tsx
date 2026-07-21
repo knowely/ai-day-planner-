@@ -73,7 +73,14 @@ describe("TodayPage", () => {
   it("shows the backlog count when there are no today tasks but the backlog has tasks", () => {
     tasksMock.mockReturnValue([inboxTask]);
     render(<TodayPage />);
-    expect(screen.getByText("У беклозі 1 задач.")).toBeInTheDocument();
+    expect(screen.getByText("У беклозі 1 задача.")).toBeInTheDocument();
+  });
+
+  it("uses the correct plural form for a backlog of several tasks", () => {
+    const secondInboxTask: Task = { ...inboxTask, id: "4" };
+    tasksMock.mockReturnValue([inboxTask, secondInboxTask]);
+    render(<TodayPage />);
+    expect(screen.getByText("У беклозі 2 задачі.")).toBeInTheDocument();
   });
 
   it("renders only today tasks", () => {

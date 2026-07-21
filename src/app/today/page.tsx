@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatTaskMeta } from "@/lib/tasks";
+import { formatBacklogCount, formatTaskMeta } from "@/lib/tasks";
 import { useTasks } from "@/hooks/useTasks";
 
 const PLAN_DAY_TIMEOUT_MS = 15000;
@@ -82,7 +82,7 @@ export default function TodayPage() {
         <p className="text-zinc-500 dark:text-zinc-400">
           {backlogTasks.length === 0
             ? "Спершу додай задачі в Inbox — і AI складе твій день."
-            : `У беклозі ${backlogTasks.length} задач.`}
+            : formatBacklogCount(backlogTasks.length)}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">

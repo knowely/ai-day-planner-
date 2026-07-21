@@ -75,6 +75,18 @@ export function formatTaskMeta(
   return parts.join(" · ");
 }
 
+function pluralizeZadacha(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "задача";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "задачі";
+  return "задач";
+}
+
+export function formatBacklogCount(count: number): string {
+  return `У беклозі ${count} ${pluralizeZadacha(count)}.`;
+}
+
 // Tasks saved before priority/estimatedMinutes/deadline existed are missing
 // those fields entirely — backfill safe defaults so old localStorage data
 // (from before this feature shipped) doesn't crash formatTaskMeta.

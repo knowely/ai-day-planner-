@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   createTask,
   createTaskFromParsed,
+  formatBacklogCount,
   formatTaskMeta,
   loadTasks,
   parseCaptureText,
@@ -92,6 +93,37 @@ describe("formatTaskMeta", () => {
       deadline: string | null;
     };
     expect(formatTaskMeta(legacyShape)).toBe("🟡");
+  });
+});
+
+describe("formatBacklogCount", () => {
+  it("uses the singular form for 1", () => {
+    expect(formatBacklogCount(1)).toBe("У беклозі 1 задача.");
+  });
+
+  it("uses the few form for 2-4", () => {
+    expect(formatBacklogCount(2)).toBe("У беклозі 2 задачі.");
+    expect(formatBacklogCount(3)).toBe("У беклозі 3 задачі.");
+    expect(formatBacklogCount(4)).toBe("У беклозі 4 задачі.");
+  });
+
+  it("uses the many form for 5-20", () => {
+    expect(formatBacklogCount(5)).toBe("У беклозі 5 задач.");
+    expect(formatBacklogCount(11)).toBe("У беклозі 11 задач.");
+    expect(formatBacklogCount(12)).toBe("У беклозі 12 задач.");
+    expect(formatBacklogCount(14)).toBe("У беклозі 14 задач.");
+    expect(formatBacklogCount(20)).toBe("У беклозі 20 задач.");
+  });
+
+  it("uses the singular form for 21 and the few form for 22-24", () => {
+    expect(formatBacklogCount(21)).toBe("У беклозі 21 задача.");
+    expect(formatBacklogCount(22)).toBe("У беклозі 22 задачі.");
+    expect(formatBacklogCount(24)).toBe("У беклозі 24 задачі.");
+  });
+
+  it("uses the many form for 25 and for 0", () => {
+    expect(formatBacklogCount(25)).toBe("У беклозі 25 задач.");
+    expect(formatBacklogCount(0)).toBe("У беклозі 0 задач.");
   });
 });
 
