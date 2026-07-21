@@ -10,7 +10,7 @@ describe("OnboardingOverlay", () => {
     expect(screen.getByText("Плануй день голосом")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Надиктуй усе, що в голові. AI розкладе це на задачі — з пріоритетом, часом і дедлайном — і сам складе твій план на сьогодні."
+        "Запиши або надиктуй усе, що в голові. AI розкладе це на задачі — з пріоритетом, часом і дедлайном — і сам складе твій план на сьогодні."
       )
     ).toBeInTheDocument();
     expect(screen.getByText("Capture")).toBeInTheDocument();
