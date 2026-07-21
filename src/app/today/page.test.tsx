@@ -51,6 +51,25 @@ const doneTask: Task = {
   deadline: null,
 };
 
+function planResponse(
+  overrides: Partial<{
+    selected: string[];
+    deferred: string[];
+    note: string;
+    totalMinutes: number;
+    overloaded: boolean;
+  }> = {}
+) {
+  return {
+    selected: [],
+    deferred: [],
+    note: "",
+    totalMinutes: 0,
+    overloaded: false,
+    ...overrides,
+  };
+}
+
 describe("TodayPage", () => {
   beforeEach(() => {
     toggleDone.mockClear();
@@ -143,13 +162,13 @@ describe("TodayPage", () => {
       ).toBeInTheDocument();
     });
 
-    it("calls applyDayPlan with the returned taskIds on success", async () => {
+    it("calls applyDayPlan with the returned selected ids on success", async () => {
       tasksMock.mockReturnValue([inboxTask]);
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({
           ok: true,
-          json: async () => ({ taskIds: ["1"] }),
+          json: async () => planResponse({ selected: ["1"], totalMinutes: 15 }),
         })
       );
       const user = userEvent.setup();
@@ -162,16 +181,20 @@ describe("TodayPage", () => {
       await waitFor(() => expect(applyDayPlan).toHaveBeenCalledWith(["1"]));
     });
 
-    it("sends the backlog in the request body", async () => {
+    it("sends the backlog and trimmed constraints in the request body", async () => {
       tasksMock.mockReturnValue([inboxTask]);
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ taskIds: [] }),
+        json: async () => planResponse(),
       });
       vi.stubGlobal("fetch", fetchMock);
       const user = userEvent.setup();
       render(<TodayPage />);
 
+      await user.type(
+        screen.getByPlaceholderText("Є обмеження? Напр.: зустрічі 14–16, лікар о 10"),
+        "  зустрічі 14–16  "
+      );
       await user.click(
         screen.getByRole("button", { name: "✨ Сформувати день" })
       );
@@ -189,6 +212,7 @@ describe("TodayPage", () => {
           deadline: null,
         },
       ]);
+      expect(body.constraints).toBe("зустрічі 14–16");
     });
 
     it("shows a loading label while the request is in flight", async () => {
@@ -214,10 +238,10 @@ describe("TodayPage", () => {
         screen.getByRole("button", { name: "AI планує твій день…" })
       ).toBeDisabled();
 
-      resolveFetch({ ok: true, json: async () => ({ taskIds: [] }) });
+      resolveFetch({ ok: true, json: async () => planResponse() });
       await waitFor(() =>
         expect(
-          screen.getByRole("button", { name: "✨ Сформувати день" })
+          screen.getByRole("button", { name: "↻ Перепланувати" })
         ).toBeInTheDocument()
       );
     });
@@ -264,6 +288,105 @@ describe("TodayPage", () => {
         ).toBeInTheDocument()
       );
       expect(applyDayPlan).not.toHaveBeenCalled();
+    });
+
+    it("switches the button label to Перепланувати after a successful plan", async () => {
+      tasksMock.mockReturnValue([inboxTask]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => planResponse({ selected: ["1"], totalMinutes: 15 }),
+        })
+      );
+      const user = userEvent.setup();
+      render(<TodayPage />);
+
+      await user.click(
+        screen.getByRole("button", { name: "✨ Сформувати день" })
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "↻ Перепланувати" })
+        ).toBeInTheDocument()
+      );
+    });
+
+    it("shows the time summary after a successful plan", async () => {
+      tasksMock.mockReturnValue([inboxTask]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => planResponse({ selected: ["1"], totalMinutes: 120 }),
+        })
+      );
+      const user = userEvent.setup();
+      render(<TodayPage />);
+
+      await user.click(
+        screen.getByRole("button", { name: "✨ Сформувати день" })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByText("~2 год заплановано")).toBeInTheDocument()
+      );
+    });
+
+    it("shows a warning banner with the note and deferred count when overloaded", async () => {
+      tasksMock.mockReturnValue([inboxTask]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () =>
+            planResponse({
+              selected: ["1"],
+              deferred: ["5", "6"],
+              note: "Задач більше, ніж влізе у день.",
+              totalMinutes: 480,
+              overloaded: true,
+            }),
+        })
+      );
+      const user = userEvent.setup();
+      render(<TodayPage />);
+
+      await user.click(
+        screen.getByRole("button", { name: "✨ Сформувати день" })
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(
+            "⚠️ Задач більше, ніж влізе у день. Лишила 2 на потім (у беклозі)."
+          )
+        ).toBeInTheDocument()
+      );
+    });
+
+    it("does not show a warning banner when the plan is not overloaded", async () => {
+      tasksMock.mockReturnValue([inboxTask]);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () =>
+            planResponse({ selected: ["1"], totalMinutes: 15, overloaded: false }),
+        })
+      );
+      const user = userEvent.setup();
+      render(<TodayPage />);
+
+      await user.click(
+        screen.getByRole("button", { name: "✨ Сформувати день" })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByText("~15 хв заплановано")).toBeInTheDocument()
+      );
+      expect(screen.queryByText(/⚠️/)).not.toBeInTheDocument();
     });
   });
 });
