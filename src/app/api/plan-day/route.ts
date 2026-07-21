@@ -1,8 +1,8 @@
-import { sanitizePlanDayResponse } from "@/lib/planDayResponse";
+import { DAY_CAPACITY_MIN, sanitizePlanDayResponse } from "@/lib/planDayResponse";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = "anthropic/claude-haiku-4.5";
-const TIME_BUDGET_MINUTES = 360;
+const MAX_CONSTRAINTS_LENGTH = 300;
 
 interface BacklogItem {
   id: string;
@@ -17,18 +17,23 @@ const PLAN_DAY_TOOL = {
   function: {
     name: "plan_day",
     description:
-      "Select and order backlog tasks that should be done today, respecting priority, deadline urgency, and a total time budget.",
+      "Select and order backlog tasks that should be done today, respecting priority, deadline urgency, energy level (heavier tasks earlier), a total time budget, and any stated constraints.",
     parameters: {
       type: "object",
       properties: {
-        taskIds: {
+        selected: {
           type: "array",
           items: { type: "string" },
           description:
-            "IDs of selected backlog tasks, in the order they should be tackled today.",
+            "IDs of selected backlog tasks, in the order they should be tackled today (highest-energy/heaviest tasks first, lighter tasks later).",
+        },
+        note: {
+          type: "string",
+          description:
+            "A short note in Ukrainian explaining the plan, especially if not everything fit today.",
         },
       },
-      required: ["taskIds"],
+      required: ["selected"],
     },
   },
 } as const;
@@ -57,6 +62,13 @@ function parseBacklog(body: unknown): BacklogItem[] | null {
   return items;
 }
 
+function parseConstraints(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const raw = (body as { constraints?: unknown }).constraints;
+  if (typeof raw !== "string") return "";
+  return raw.trim().slice(0, MAX_CONSTRAINTS_LENGTH);
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {
@@ -69,6 +81,7 @@ export async function POST(request: Request): Promise<Response> {
   if (backlog === null) {
     return Response.json({ error: "backlog is required" }, { status: 400 });
   }
+  const constraints = parseConstraints(body);
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -90,9 +103,9 @@ export async function POST(request: Request): Promise<Response> {
         messages: [
           {
             role: "system",
-            content: `Today's date is ${today}. You are planning a realistic today-list from a backlog of tasks (given as JSON in the user message). Prefer higher priority and closer deadlines. Keep the total estimated time roughly under ${TIME_BUDGET_MINUTES} minutes, using judgement for tasks with no time estimate. Select and order the chosen tasks using the plan_day tool. Respond only by calling the tool.`,
+            content: `Today's date is ${today}. You are planning a realistic today-list from a backlog of tasks (given as JSON in the user message, alongside any stated constraints). Order tasks by energy: schedule higher-priority and/or longer-duration tasks earlier in the day, and lighter tasks later, so the morning carries the heaviest load. If constraints describes time already spoken for (e.g. meetings, appointments), plan the remaining tasks around it. Keep the total estimated time under ${DAY_CAPACITY_MIN} minutes, using judgement for tasks with no time estimate. Select and order the chosen tasks using the plan_day tool, and include a short Ukrainian note explaining the plan, especially if not everything fits today. Respond only by calling the tool.`,
           },
-          { role: "user", content: JSON.stringify(backlog) },
+          { role: "user", content: JSON.stringify({ backlog, constraints }) },
         ],
         tools: [PLAN_DAY_TOOL],
         tool_choice: { type: "function", function: { name: "plan_day" } },
@@ -123,8 +136,11 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const validIds = new Set(backlog.map((item) => item.id));
-  const taskIds = sanitizePlanDayResponse(toolArguments, validIds);
-  return Response.json({ taskIds }, { status: 200 });
+  const minutesById = new Map(
+    backlog.map((item) => [item.id, item.estimatedMinutes] as const)
+  );
+  const result = sanitizePlanDayResponse(toolArguments, validIds, minutesById);
+  return Response.json(result, { status: 200 });
 }
 
 function extractToolArguments(data: unknown): unknown {

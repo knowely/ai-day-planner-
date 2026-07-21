@@ -58,17 +58,69 @@ describe("POST /api/plan-day", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns sanitized taskIds on a successful tool call", async () => {
+  it("returns a sanitized plan on a successful tool call", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(toolCallResponse({ taskIds: ["1", "999", "1"] }))
+      vi.fn().mockResolvedValue(
+        toolCallResponse({ selected: ["1", "999", "1"], note: "Почни з молока." })
+      )
     );
 
     const response = await POST(makeRequest({ backlog: sampleBacklog }));
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.taskIds).toEqual(["1"]);
+    expect(data.selected).toEqual(["1"]);
+    expect(data.deferred).toEqual(["2"]);
+    expect(data.note).toBe("Почни з молока.");
+    expect(data.totalMinutes).toBe(15);
+    expect(data.overloaded).toBe(true);
+  });
+
+  it("forwards constraints to the upstream request as separate data", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(toolCallResponse({ selected: ["1"] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await POST(
+      makeRequest({ backlog: sampleBacklog, constraints: "зустрічі 14–16" })
+    );
+
+    const [, requestInit] = fetchMock.mock.calls[0];
+    const requestBody = JSON.parse(requestInit.body);
+    const userMessage = JSON.parse(requestBody.messages[1].content);
+    expect(userMessage.constraints).toBe("зустрічі 14–16");
+    expect(userMessage.backlog).toEqual(sampleBacklog);
+  });
+
+  it("sends an empty constraints string when none is provided", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(toolCallResponse({ selected: ["1"] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await POST(makeRequest({ backlog: sampleBacklog }));
+
+    const [, requestInit] = fetchMock.mock.calls[0];
+    const requestBody = JSON.parse(requestInit.body);
+    const userMessage = JSON.parse(requestBody.messages[1].content);
+    expect(userMessage.constraints).toBe("");
+  });
+
+  it("truncates the plan when the backlog exceeds DAY_CAPACITY_MIN", async () => {
+    const heavyBacklog = [
+      { id: "1", text: "A", priority: "high", estimatedMinutes: 300, deadline: null },
+      { id: "2", text: "B", priority: "high", estimatedMinutes: 300, deadline: null },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(toolCallResponse({ selected: ["1", "2"] }))
+    );
+
+    const response = await POST(makeRequest({ backlog: heavyBacklog }));
+    const data = await response.json();
+
+    expect(data.selected).toEqual(["1"]);
+    expect(data.deferred).toEqual(["2"]);
+    expect(data.overloaded).toBe(true);
+    expect(data.totalMinutes).toBe(300);
   });
 
   it("returns 400 when backlog is missing", async () => {
