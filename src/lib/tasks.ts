@@ -87,6 +87,15 @@ export function formatBacklogCount(count: number): string {
   return `У беклозі ${count} ${pluralizeZadacha(count)}.`;
 }
 
+export function formatPlanSummary(totalMinutes: number): string {
+  if (totalMinutes < 60) {
+    return `~${totalMinutes} хв заплановано`;
+  }
+  const hours = Math.round((totalMinutes / 60) * 2) / 2;
+  const hoursLabel = Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+  return `~${hoursLabel} год заплановано`;
+}
+
 // Tasks saved before priority/estimatedMinutes/deadline existed are missing
 // those fields entirely — backfill safe defaults so old localStorage data
 // (from before this feature shipped) doesn't crash formatTaskMeta.

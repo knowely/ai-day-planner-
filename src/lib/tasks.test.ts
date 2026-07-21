@@ -3,6 +3,7 @@ import {
   createTask,
   createTaskFromParsed,
   formatBacklogCount,
+  formatPlanSummary,
   formatTaskMeta,
   loadTasks,
   parseCaptureText,
@@ -124,6 +125,26 @@ describe("formatBacklogCount", () => {
   it("uses the many form for 25 and for 0", () => {
     expect(formatBacklogCount(25)).toBe("У беклозі 25 задач.");
     expect(formatBacklogCount(0)).toBe("У беклозі 0 задач.");
+  });
+});
+
+describe("formatPlanSummary", () => {
+  it("shows minutes when under an hour", () => {
+    expect(formatPlanSummary(45)).toBe("~45 хв заплановано");
+  });
+
+  it("shows whole hours", () => {
+    expect(formatPlanSummary(120)).toBe("~2 год заплановано");
+  });
+
+  it("rounds to the nearest half hour", () => {
+    expect(formatPlanSummary(100)).toBe("~1.5 год заплановано");
+    expect(formatPlanSummary(370)).toBe("~6 год заплановано");
+    expect(formatPlanSummary(390)).toBe("~6.5 год заплановано");
+  });
+
+  it("handles zero minutes", () => {
+    expect(formatPlanSummary(0)).toBe("~0 хв заплановано");
   });
 });
 
