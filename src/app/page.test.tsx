@@ -352,7 +352,7 @@ describe("CapturePage", () => {
     it("shows the hint when the field is empty", () => {
       render(<CapturePage />);
       expect(
-        screen.getByText(/Натисни 🎤 і просто проговори все/)
+        screen.getByText(/Запиши або натисни мікрофон і проговори все/)
       ).toBeInTheDocument();
     });
 
@@ -363,7 +363,7 @@ describe("CapturePage", () => {
       await user.type(screen.getByLabelText("Що в голові?"), "купити молоко");
 
       expect(
-        screen.queryByText(/Натисни 🎤 і просто проговори все/)
+        screen.queryByText(/Запиши або натисни мікрофон і проговори все/)
       ).not.toBeInTheDocument();
     });
   });
